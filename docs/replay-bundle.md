@@ -57,6 +57,15 @@ ReplayWeb.page の `?source=` に渡す物。
       "filename": "a4d7…_3f2a….browserhive.wacz",
       "isSeed": true,
       "crawl_id": "<crawlId>"
+    },
+    {
+      "id": "a4d7…-after-load",
+      "url": "urn:browserhive:snapshot:after-load:http://site.test/",
+      "ts": "2026-11-05T01:04:00.324Z",
+      "title": "hub",
+      "filename": "a4d7…_3f2a….browserhive.wacz",
+      "isSeed": true,
+      "crawl_id": "<crawlId>"
     }
   ],
   "totalPages": 412,
@@ -84,7 +93,7 @@ ReplayWeb.page の `?source=` に渡す物。
 | `resources[].hash` | `sha256:` ＋ WACZ のファイル全体の sha256（16 進の小文字）。ReplayWeb.page は照らさない（呼び分けの名前に使う）。証拠のために載せる                                                                                                                                                                                                                                                                                                                                                                              |
 | `resources` の並び | **起点の頁の WACZ を先頭に**、続けて深さ・撮った時刻の順。ただし ReplayWeb.page（wabac.js 2.27）は、頁の問い（`pagesQueryUrl`）を使わない要求（頁の中で見つからない物・`<frame>` の中の遷移など）では、要求が名指す WACZ のクロールに起点の頁（`isSeed`）が在ればその WACZ を、無ければ一覧の先頭 3 本だけを探す。その 3 本はこの並びではなく WACZ の名前（`name`）の順で選ばれる（2.5.0 で確かめ、2026-11-14 に capture-player の見本でも確かめた。wabac.js の `src/wacz/multiwacz.ts` の `getWACZFilesToTry`） |
 | `pagesQueryUrl`    | `/q/` ＋ `<置き場>` ＋ `/pages`（末尾の `/` は無し）                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `initialPages`     | 一覧の 1 ページ目。25 行まで。起点の頁（深さ 0）を先頭に、深さ・時刻の順。`isSeed` は深さ 0 の頁で true。写しの行（BrowserHive WACZ の DOM の写しの行。`url` が `urn:browserhive:snapshot:…`）は入れない                                                                                                                                                                                                                                                                                                         |
+| `initialPages`     | 一覧の 1 ページ目。`pages.json` の行を、問い無しの `/q/` と同じ並び（深さ → 時刻 → `id`）で先頭から 25 行まで。写しの行（BrowserHive WACZ の DOM の写しの行。`url` が `urn:browserhive:snapshot:…`）も入れる。`isSeed` は深さ 0 の頁の行で true（写しの行も、同じ頁の文書の行と同じ）。写しの行は `keys` が空で `?url=` では当たらないが、一覧から押すと ReplayWeb.page が行の `filename` から waczhash を付け、その WACZ を名指して開く                                                                         |
 | `totalPages`       | `pages.json` の `pages` の数                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `replayBundle`     | capture-ledger の記録。ReplayWeb.page も replayweb-server も読まない（知らない欄は読み飛ばす）。ほかの欄の名前とぶつけない。欄の意味は capture-ledger の docs                                                                                                                                                                                                                                                                                                                                                    |
 
@@ -131,7 +140,8 @@ replayweb-server だけが読む。
   `depth` は数か `null`。形が違えば `/q/` は 502 で答える。
 - `keys` は文書の行（`stage` が無い行）だけに入れる。頼んだ URL と、
   [BrowserHive](https://github.com/uraitakahito/browserhive)（頁を撮って WACZ にする server）の答えの `document.url`
-  （リダイレクトの後。在れば）を、下の正規化に通した物。重複は 1 つに。写しの行は空。
+  （リダイレクトの後。在れば）を、下の正規化に通した物。重複は 1 つに。写しの行は空（`?url=` では当たらない。
+  写しの行を開く道は、`initialPages` か `?search=`・問い無しの答えの行の `filename`）。
 - 行の並びに約束は無い（server が自分で並べる）。
 
 ## 正規化
@@ -170,7 +180,7 @@ server は保管庫の `<置き場>/pages.json`（`S3_BUCKET_URL` ＋ `/` ＋ `<
 | ------------- | -------------------------------------------------------------------------------------------------------- |
 | `?url=<u>`    | `u` を正規化し（`null` なら 0 件）、`keys` に同じ物を持つ行を先に、`keys` のどれかがそれで始まる行を後に |
 | `?search=<s>` | `url` か `title` が `s` を含む行（大小を区別しない）。`url` が `s` で始まる行を先に、ほかを後に          |
-| どちらも無い  | 全部の行（写しの行も）                                                                                   |
+| どちらも無い  | 全部の行（写しの行も）。先頭の 25 行は `initialPages` と同じ並び                                         |
 
 - 両方あれば `url` で引き、`search` は見ない。
 - 同じ組の中は、深さ → 時刻 → `id` の順（深さと時刻の無い行は後ろ）。
@@ -226,7 +236,9 @@ ReplayWeb.page（wabac.js 2.27）は、頁を開くとき `?url=<頁の URL>&pag
   だから答えの `url` は当たった key にする。
 - 当たりが無く URL に query があると、query を外した URL を `?search=` に入れて問い直し、同じく先頭から `url` が
   それで始まる行だけを使う。だから `?search=` も `url` が語で始まる行を先に返す。
-- 一覧の 1 ページ目は `initialPages` から作られ、`/q/` は検索と 2 ページ目以降にだけ使われる。
+- 一覧の 1 ページ目は `initialPages` から作られ、`/q/` は検索と 2 ページ目以降にだけ使われる。2 ページ目は
+  問い無しの `page=2&pageSize=25`（26 行目から）で、ReplayWeb.page は `id` で重複を外して後ろに足す。だから
+  `initialPages` は問い無しの並びの先頭 25 行と同じにする（ずれると、1 ページ目に無い行が抜けたまま続く）。
 
 ## `/wacz/` の鍵の綴り
 
