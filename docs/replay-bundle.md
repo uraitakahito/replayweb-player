@@ -1,35 +1,35 @@
 # 合本（replay bundle）の形 v1
 
 クロール 1 本を、[ReplayWeb.page](https://replayweb.page/)（ブラウザで動く WACZ のビューア）で 1 つの
-アーカイブとして開くための置き方と、replayweb-server（この repo）がそれに答える約束。合本は `replay.json` と `pages.json`
+アーカイブとして開くための置き方と、replayweb-player（この repo）がそれに答える約束。合本は `replay.json` と `pages.json`
 の組で、WACZ（Web Archive Collection Zipped。撮った頁の通信を詰めた zip）と同じ保管庫に置く。
 
 - 書くのは [capture-ledger](https://github.com/uraitakahito/capture-ledger)（クロールの記録。クロールの段ごとに
   新しい版を書く）。
-- 読むのは replayweb-server と、ReplayWeb.page。
+- 読むのは replayweb-player（改変していない ReplayWeb.page）と、[capture-player](https://github.com/uraitakahito/capture-player)（ReplayWeb.page を改変した Web Capture のビューア。この repo の server を写して持ち、同じ約束で答える）。
 - 正規化の試験の例は [`test/vectors/canonical-url.json`](../test/vectors/canonical-url.json)。capture-ledger は写しを持ち、
   同じ例で同じ式を縛る。
 
 ## 開き方
 
 ```
-https://<replayweb-server>/?source=/wacz/<置き場>/replay.json
+https://<replayweb-player>/?source=/wacz/<置き場>/replay.json
 ```
 
 `?source=` の URL は `.json` で終わる必要がある（ReplayWeb.page は拡張子だけで JSON かを決める）。
-`replay.json` は `/wacz/` を通して保管庫から読まれ、`pagesQueryUrl` の問いは replayweb-server の `/q/` が答える。
-開くときに通るのは replayweb-server と保管庫だけで、capture-ledger の API は要らない。
+`replay.json` は `/wacz/` を通して保管庫から読まれ、`pagesQueryUrl` の問いは replayweb-player の `/q/` が答える。
+開くときに通るのは replayweb-player と保管庫だけで、capture-ledger の API は要らない。
 
 ## 置き場
 
 - 合本の置き場（以下 `<置き場>`）は `org/<orgId>/crawls/<crawlId>/r<版>`。WACZ と同じ bucket に置く。
 - 中身は `<置き場>/replay.json` と `<置き場>/pages.json`（どちらも `application/json`）。
-- **一度書いた版は書き換えない。** 合本を作り直すときは、新しい版の置き場に書く。replayweb-server は、
+- **一度書いた版は書き換えない。** 合本を作り直すときは、新しい版の置き場に書く。replayweb-player は、
   読んだ `pages.json` を新しさを確かめずに手元に置く。
 - 版は 1 から始まる整数（クロールごと）。capture-ledger が払い出し、指す版は前へだけ進む。
 - 終わったクロール（succeeded・failed）の版には、capture-ledger が署名した `<置き場>/replay-digest.json`
   （`{path: "replay.json", hash, signedData}`。WACZ の `datapackage-digest.json` と同じ形）が在りうる。
-  replayweb-server は読まない。何を証すかと検め方は、
+  replayweb-player は読まない。何を証すかと検め方は、
   [capture-ledger](https://github.com/uraitakahito/capture-ledger) の docs（archive-ledger の「合本の署名」）に在る。
 
 ## replay.json
@@ -95,11 +95,11 @@ ReplayWeb.page の `?source=` に渡す物。
 | `pagesQueryUrl`    | `/q/` ＋ `<置き場>` ＋ `/pages`（末尾の `/` は無し）                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `initialPages`     | 一覧の 1 ページ目。`pages.json` の行を、問い無しの `/q/` と同じ並び（深さ → 時刻 → `id`）で先頭から 25 行まで。写しの行（BrowserHive WACZ の DOM の写しの行。`url` が `urn:browserhive:snapshot:…`）も入れる。`isSeed` は深さ 0 の頁の行で true（写しの行も、同じ頁の文書の行と同じ）。写しの行は `keys` が空で `?url=` では当たらないが、一覧から押すと ReplayWeb.page が行の `filename` から waczhash を付け、その WACZ を名指して開く                                                                         |
 | `totalPages`       | `pages.json` の `pages` の数                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `replayBundle`     | capture-ledger の記録。ReplayWeb.page も replayweb-server も読まない（知らない欄は読み飛ばす）。ほかの欄の名前とぶつけない。欄の意味は capture-ledger の docs                                                                                                                                                                                                                                                                                                                                                    |
+| `replayBundle`     | capture-ledger の記録。ReplayWeb.page も replayweb-player も読まない（知らない欄は読み飛ばす）。ほかの欄の名前とぶつけない。欄の意味は capture-ledger の docs                                                                                                                                                                                                                                                                                                                                                    |
 
 ## pages.json
 
-replayweb-server だけが読む。
+replayweb-player だけが読む。
 
 ```json
 {
