@@ -1,4 +1,4 @@
-# replayweb-server
+# replayweb-player
 
 Self-hosted [ReplayWeb.page](https://replayweb.page/). A small Node server serves
 the viewer from this container, proxies WACZ out of an S3-compatible store, and
@@ -10,6 +10,12 @@ Built for the dev stacks of [BrowserHive](https://github.com/uraitakahito/browse
 [capture-ledger](https://github.com/uraitakahito/capture-ledger) (the crawl
 ledger that writes replay bundles), but not tied to them: point `S3_BUCKET_URL`
 at any bucket that allows anonymous reads.
+
+Web Capture links every archive to two viewers: this one, which replays it in
+ReplayWeb.page as it is, and
+[capture-player](https://github.com/uraitakahito/capture-player), a modified
+ReplayWeb.page that also shows what a BrowserHive WACZ adds. The two share
+this server's code and the same upstream versions.
 
 ## Why not just use replayweb.page
 
@@ -29,8 +35,8 @@ Three reasons, in increasing order of importance:
 ## Run
 
 ```
-docker build -t replayweb-server .
-docker run --rm -p 8899:8080 replayweb-server
+docker build -t replayweb-player .
+docker run --rm -p 8899:8080 replayweb-player
 open "http://127.0.0.1:8899/"
 ```
 
@@ -38,7 +44,7 @@ Inside a stack, where the object store is reachable. BrowserHive's stack serves 
 under its name with TLS; capture-ledger's stack publishes it on the loopback:
 
 ```
-open "https://replayweb-server.browserhive/?source=/wacz/<taskId>_<correlationId>.browserhive.wacz"
+open "https://replayweb-player.browserhive/?source=/wacz/<taskId>_<correlationId>.browserhive.wacz"
 open "http://127.0.0.1:8899/?source=/wacz/<taskId>_<correlationId>.browserhive.wacz"
 ```
 
@@ -207,7 +213,7 @@ probed for what the stacks depend on.
 
 ```
 pnpm add replaywebpage@<version>   # rewrites package.json and the lockfile
-docker build -t replayweb-server .           # --frozen-lockfile would fail if they disagreed
+docker build -t replayweb-player .           # --frozen-lockfile would fail if they disagreed
 pnpm audit --audit-level=low       # what .github/workflows/audit.yml runs
 ```
 

@@ -77,7 +77,7 @@ const dropPrivileges = (proc: ViewerProcess, runAs: string): void => {
     proc.setgroups?.([]);
     proc.setgid(runAs);
     proc.setuid(runAs);
-    proc.stdout.write(`replayweb-server: bound the ports as root, now serving as ${runAs}\n`);
+    proc.stdout.write(`replayweb-player: bound the ports as root, now serving as ${runAs}\n`);
   } catch (error) {
     proc.stderr.write(
       `WARN: could not switch to the ${runAs} user (${(error as Error).message}); serving as root\n`,
@@ -142,7 +142,7 @@ export const run = async (
   const secure =
     addresses.secure === undefined ? "" : ` and https on ${String(addresses.secure.port)}`;
   proc.stdout.write(
-    `replayweb-server: http on ${String(addresses.plain.port)}${secure}; /wacz/ and /q/ read ${config.bucketUrl}\n`,
+    `replayweb-player: http on ${String(addresses.plain.port)}${secure}; /wacz/ and /q/ read ${config.bucketUrl}\n`,
   );
 
   let closing: Promise<void> | undefined;
@@ -155,7 +155,7 @@ export const run = async (
   };
   for (const signal of ["SIGTERM", "SIGINT"] as const) {
     proc.on(signal, () => {
-      proc.stdout.write(`replayweb-server: ${signal}, closing\n`);
+      proc.stdout.write(`replayweb-player: ${signal}, closing\n`);
       void shutdown();
     });
   }
