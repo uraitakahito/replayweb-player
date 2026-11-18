@@ -68,8 +68,22 @@ allowBuilds:
 #     外す条件: replaywebpage を上げるとき (capture-player と同じ版にそろえて上げる。CAPTURE-102 の
 #     後)。lockfile の側は 2.5.4 で 5.12.0 に解決されるので、上げる PR でこの行を消す。配る物まで
 #     直ったかは、上げた版の上流の yarn.lock の fast-xml-parser が 5.12.0 以上かで見る。
+#
+#   GHSA-fc5q-39xc-vjpf — picomatch: 単一の枝を繰り返す extglob (`+(*)` など) の ReDoS (high)。
+#     勧告の範囲は <= 4.0.7 で 2 系も含み、直った版はまだ無い (2026-11-18 の時点で npm の
+#     最新は 4.0.7。直しの PR は micromatch/picomatch の #265〜#273 で未 merge)。上げる先が
+#     無いので、lockfile の更新でも override でも越えられない。
+#
+#     要求元は vite・vitest・tinyglobby・fdir (picomatch 4.0.7)。どれも devDependencies の
+#     試験の道具で、`pnpm audit --prod` には現れない。読むパターンはこの repo の設定と試験の
+#     対象だけ。
+#
+#     外す条件: 勧告に直った版 (first_patched_version) が載ったとき。
+#     `pnpm update picomatch -r --depth Infinity` で上げ、この行を消しても `pnpm audit` が 0 に
+#     なれば消す (CAPTURE-478)。
 auditConfig:
   ignoreGhsas:
     - GHSA-gh4j-gqv2-49f6
     - GHSA-g3hv-75wg-m249
     - GHSA-474x-hrwr-fgx4
+    - GHSA-fc5q-39xc-vjpf
